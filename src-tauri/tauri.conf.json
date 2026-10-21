@@ -16,8 +16,9 @@
         "width": 1280,
         "height": 800,
         "minWidth": 1000,
-        "minHeight": 650,
-        "theme": "Dark"
+        "minHeight": 600,
+        "theme": "Dark",
+        "dragDropEnabled": false
       }
     ],
     "security": {
