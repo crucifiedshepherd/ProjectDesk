@@ -12,6 +12,17 @@ export type Task = {
   doneAt: string | null;
 };
 
+export type NoteField = { name: string; value: string };
+export type Note = {
+  id: number;
+  title: string;
+  category: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  fields: NoteField[];
+};
+
 type TaskRow = {
   id: number;
   title: string;
@@ -38,6 +49,23 @@ const MIGRATIONS: string[][] = [
        deadline TEXT,
        created_at TEXT NOT NULL,
        done_at TEXT
+     )`,
+  ],
+  [
+    `CREATE TABLE notes (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       title TEXT NOT NULL DEFAULT '',
+       category TEXT NOT NULL DEFAULT '',
+       body TEXT NOT NULL DEFAULT '',
+       created_at TEXT NOT NULL,
+       updated_at TEXT NOT NULL
+     )`,
+    `CREATE TABLE note_fields (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       note_id INTEGER NOT NULL,
+       name TEXT NOT NULL,
+       value TEXT NOT NULL DEFAULT '',
+       position INTEGER NOT NULL DEFAULT 0
      )`,
   ],
 ];
@@ -147,4 +175,96 @@ export async function setDone(id: number, done: boolean) {
 export async function deleteTask(id: number) {
   const db = await getDb();
   await db.execute("DELETE FROM tasks WHERE id = $1", [id]);
+}
+
+// ф-ии заметок
+type NoteRow = {
+  id: number;
+  title: string;
+  category: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+};
+type FieldRow = { note_id: number; name: string; value: string };
+
+// Очередь: чтение, сохранение и удаление заметок идут строго по порядку
+let queue: Promise<unknown> = Promise.resolve();
+function enqueue<T>(job: () => Promise<T>): Promise<T> {
+  const run = queue.then(job);
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+export function loadNotes(): Promise<Note[]> {
+  return enqueue(async () => {
+    const db = await getDb();
+    const rows = await db.select<NoteRow[]>(
+      "SELECT id, title, category, body, created_at, updated_at FROM notes ORDER BY id DESC"
+    );
+    const fields = await db.select<FieldRow[]>(
+      "SELECT note_id, name, value FROM note_fields ORDER BY note_id, position, id"
+    );
+    const byNote = new Map<number, NoteField[]>();
+    fields.forEach((f) => {
+      const list = byNote.get(f.note_id) ?? [];
+      list.push({ name: f.name, value: f.value });
+      byNote.set(f.note_id, list);
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      category: r.category,
+      body: r.body,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      fields: byNote.get(r.id) ?? [],
+    }));
+  });
+}
+
+export function createNote(category: string, fields: NoteField[]): Promise<Note> {
+  return enqueue(async () => {
+    const db = await getDb();
+    const now = new Date().toISOString();
+    const res = await db.execute(
+      "INSERT INTO notes (title, category, body, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)",
+      ["", category, "", now, now]
+    );
+    const id = res.lastInsertId as number;
+    for (let i = 0; i < fields.length; i++) {
+      await db.execute(
+        "INSERT INTO note_fields (note_id, name, value, position) VALUES ($1, $2, $3, $4)",
+        [id, fields[i].name, fields[i].value, i]
+      );
+    }
+    return { id, title: "", category, body: "", createdAt: now, updatedAt: now, fields };
+  });
+}
+
+export function saveNote(note: Note): Promise<void> {
+  return enqueue(async () => {
+    const db = await getDb();
+    await db.execute(
+      "UPDATE notes SET title = $1, category = $2, body = $3, updated_at = $4 WHERE id = $5",
+      [note.title, note.category.trim(), note.body, note.updatedAt, note.id]
+    );
+    await db.execute("DELETE FROM note_fields WHERE note_id = $1", [note.id]);
+    let pos = 0;
+    for (const f of note.fields) {
+      if (!f.name.trim() && !f.value.trim()) continue; // пустые строки не сохраняем
+      await db.execute(
+        "INSERT INTO note_fields (note_id, name, value, position) VALUES ($1, $2, $3, $4)",
+        [note.id, f.name, f.value, pos++]
+      );
+    }
+  });
+}
+
+export function deleteNote(id: number): Promise<void> {
+  return enqueue(async () => {
+    const db = await getDb();
+    await db.execute("DELETE FROM note_fields WHERE note_id = $1", [id]);
+    await db.execute("DELETE FROM notes WHERE id = $1", [id]);
+  });
 }

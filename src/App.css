@@ -190,3 +190,40 @@ button.prio { border: 0; cursor: pointer; }
 .error-banner { background: rgba(255,90,95,.14); color: var(--red); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; font-size: 13px; }
 .cell.future { background: transparent; }
 .empty { color: var(--muted); padding: 24px 0; text-align: center; }
+
+/* Этап 3: заметки */
+.panel.fill { height: 100%; }
+.notes-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px 1fr; gap: 16px; }
+.notes-side { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.add-input.search { flex: none; border-color: var(--border); }
+.notes-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+
+.note-item { display: flex; flex-direction: column; gap: 4px; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; transition: .15s; }
+.note-item:hover { border-color: var(--muted); }
+.note-item.active { border-color: var(--orange); background: var(--surface-2); }
+.note-item-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.note-item-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-item-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-cat { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.note-cat-head { display: flex; align-items: center; justify-content: space-between; }
+
+.editor { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow-y: auto; }
+.editor.placeholder { justify-content: center; }
+.editor-title { background: transparent; border: 0; outline: none; color: var(--text); font: inherit; font-size: 24px; font-weight: 700; padding: 0; }
+.editor-title::placeholder { color: var(--muted); }
+.editor-meta { display: flex; align-items: center; gap: 12px; }
+.label { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.meta-input, .field-name, .field-value { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px; font: inherit; outline: none; }
+.meta-input { flex: 1; }
+.meta-input:focus, .field-name:focus, .field-value:focus, .editor-body:focus { border-color: var(--orange); }
+
+.fields { display: flex; flex-direction: column; gap: 8px; }
+.fields-head { display: flex; align-items: center; justify-content: space-between; }
+.field-row { display: flex; gap: 8px; align-items: center; }
+.field-name { width: 40%; color: var(--blue); }
+.field-value { flex: 1; }
+.field-value:placeholder-shown { border-color: rgba(255,90,95,.5); }
+.field-value::placeholder { color: var(--red); }
+
+.editor-body { flex: 1; min-height: 160px; resize: none; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 12px; font: inherit; line-height: 1.5; outline: none; }
+.editor-foot { display: flex; justify-content: space-between; align-items: center; }
