@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as api from "../db";
 import type { Note, NoteField } from "../db";
 
-type Props = { onClose: () => void };
+type Props = { onClose: () => void; initialID?: number | null };
 
 const SAVE_DELAY = 500;
 
@@ -18,11 +18,11 @@ function templateFor(category: string, list: Note[], excludeId?: number): NoteFi
 
 const emptyCount = (n: Note) => n.fields.filter((f) => f.name.trim() && !f.value.trim()).length;
 
-export default function Notes({ onClose }: Props) {
+export default function Notes({ onClose, initialID = null }: Props) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(initialID);
   const [query, setQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 

@@ -41,7 +41,10 @@ export default function EditableText({ value, onSave, className }: Props) {
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Enter") commit();
-          if (e.key === "Escape") cancel();
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            cancel();
+          }
         }}
       />
     );

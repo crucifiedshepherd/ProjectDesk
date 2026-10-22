@@ -23,6 +23,9 @@ export type Note = {
   fields: NoteField[];
 };
 
+export type Account = { id: number; name: string; amount: number };
+export type SavingsPoint = { at: string; total: number };
+
 type TaskRow = {
   id: number;
   title: string;
@@ -66,6 +69,18 @@ const MIGRATIONS: string[][] = [
        name TEXT NOT NULL,
        value TEXT NOT NULL DEFAULT '',
        position INTEGER NOT NULL DEFAULT 0
+     )`,
+  ],
+  [
+    `CREATE TABLE accounts (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       name TEXT NOT NULL,
+       amount REAL NOT NULL DEFAULT 0
+     )`,
+    `CREATE TABLE savings_log (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       at TEXT NOT NULL,
+       total REAL NOT NULL
      )`,
   ],
 ];
@@ -266,5 +281,53 @@ export function deleteNote(id: number): Promise<void> {
     const db = await getDb();
     await db.execute("DELETE FROM note_fields WHERE note_id = $1", [id]);
     await db.execute("DELETE FROM notes WHERE id = $1", [id]);
+  });
+}
+
+// Сбережения
+async function logTotal(db: Database) {
+  await db.execute(
+    "INSERT INTO savings_log (at, total) VALUES ($1, (SELECT COALESCE(SUM(amount), 0) FROM accounts))",
+    [new Date().toISOString()]
+  );
+}
+
+export function loadSavings(): Promise<{ accounts: Account[]; log: SavingsPoint[] }> {
+  return enqueue(async () => {
+    const db = await getDb();
+    const accounts = await db.select<Account[]>("SELECT id, name, amount FROM accounts ORDER BY id");
+    const log = await db.select<SavingsPoint[]>("SELECT at, total FROM savings_log ORDER BY id");
+    return { accounts, log };
+  });
+}
+
+export function addAccount(name: string, amount: number): Promise<void> {
+  return enqueue(async () => {
+    const db = await getDb();
+    await db.execute("INSERT INTO accounts (name, amount) VALUES ($1, $2)", [name, amount]);
+    await logTotal(db);
+  });
+}
+
+export function renameAccount(id: number, name: string): Promise<void> {
+  return enqueue(async () => {
+    const db = await getDb();
+    await db.execute("UPDATE accounts SET name = $1 WHERE id = $2", [name, id]);
+  });
+}
+
+export function setAccountAmount(id: number, amount: number): Promise<void> {
+  return enqueue(async () => {
+    const db = await getDb();
+    await db.execute("UPDATE accounts SET amount = $1 WHERE id = $2", [amount, id]);
+    await logTotal(db);
+  });
+}
+
+export function deleteAccount(id: number): Promise<void> {
+  return enqueue(async () => {
+    const db = await getDb();
+    await db.execute("DELETE FROM accounts WHERE id = $1", [id]);
+    await logTotal(db);
   });
 }
