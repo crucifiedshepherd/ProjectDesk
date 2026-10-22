@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 export type Section = "daily" | "notes" | "summary";
 
 type Props = {
@@ -5,7 +6,7 @@ type Props = {
   onSelect: (s: Section) => void;
 };
 
-const items: { id: Section; label: string; icon: JSX.Element }[] = [
+const items: { id: Section; label: string; icon: ReactElement}[] = [
   {
     id: "daily",
     label: "Ежедневник",
